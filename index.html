@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ebuTuoY — 내가 보지 못하는 유튜브</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f0f0f; --surface:#1a1a19; --surface-2:#272726; --line:#3a3a38;
+  --text:#f0efec; --text-2:#c3c2b7; --text-3:#8f8e86;
+  --accent:#9085e9;
+  --series-1:#3987e5; --series-2:#d95926;
+  --seq-0:#1f2630; --seq-1:#1d3f66; --seq-2:#24599a; --seq-3:#3987e5; --seq-4:#8dbcf5;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Roboto","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:14px;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hidden{display:none!important}
+
+/* header */
+header{position:sticky;top:0;z-index:20;height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;background:var(--bg)}
+.logo{display:flex;align-items:center;gap:6px;font-size:20px;font-weight:700;letter-spacing:-.8px;flex:none}
+.logo svg{width:30px;height:22px}
+.searchbar{flex:1;max-width:560px;margin:0 auto;height:40px;display:flex;align-items:center;padding:0 16px;border:1px solid var(--line);border-radius:20px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbtn{height:36px;padding:0 14px;border-radius:18px;background:var(--surface-2);white-space:nowrap;flex:none}
+.hbtn:hover{background:var(--line)}
+.hbtn.primary{background:var(--text);color:#0f0f0f;font-weight:500}
+
+main{max-width:1500px;margin:0 auto;padding:0 24px 80px}
+
+/* upload */
+.upload{max-width:760px;margin:40px auto;text-align:center}
+.upload h1{font-size:28px;line-height:1.3;margin:0 0 8px;text-wrap:balance}
+.upload p{color:var(--text-2);margin:0 0 24px;text-wrap:pretty}
+.drop{border:2px dashed var(--line);border-radius:16px;padding:36px 20px;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--surface)}
+.drop strong{display:block;font-size:16px;margin-bottom:4px}
+.drop span{color:var(--text-3)}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0}
+.thumbs div{position:relative}
+.thumbs img{width:104px;height:60px;object-fit:cover;border-radius:6px;display:block}
+.thumbs button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--text);color:#000;font-size:12px;line-height:20px}
+.count{color:var(--text-2);margin:8px 0 16px;min-height:21px}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{height:44px;padding:0 24px;border-radius:22px;background:var(--surface-2);font-weight:500}
+.btn:hover{background:var(--line)}
+.btn.primary{background:var(--text);color:#0f0f0f}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.steps{list-style:none;padding:0;margin:28px auto 0;max-width:460px;text-align:left}
+.steps li{display:flex;gap:10px;align-items:center;padding:7px 0;color:var(--text-3)}
+.steps li i{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none}
+.steps li.run{color:var(--text)}
+.steps li.run i{border-color:var(--accent);border-top-color:transparent;animation:spin .8s linear infinite}
+.steps li.done{color:var(--text-2)}
+.steps li.done i{background:var(--accent);border-color:var(--accent)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error{margin:20px auto 0;max-width:620px;padding:12px 16px;border-radius:10px;background:#3a1d1d;color:#ffd6d6;text-align:left;white-space:pre-wrap;word-break:break-word}
+
+/* feed */
+.chips{position:sticky;top:56px;z-index:10;display:flex;gap:10px;align-items:center;padding:10px 0 14px;background:var(--bg);overflow-x:auto}
+.chip{min-width:44px;height:32px;padding:0 14px;border-radius:8px;background:var(--surface-2);font-weight:500;flex:none}
+.chip:hover{background:var(--line)}
+.chip[aria-pressed="true"]{background:var(--text);color:#0f0f0f}
+.chips .note{color:var(--text-3);margin-left:8px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:36px 16px}
+@media(max-width:1200px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:860px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.grid{grid-template-columns:1fr}.searchbar{display:none}main{padding:0 12px 60px}}
+.card{display:block;position:relative}
+.thumb{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:var(--surface-2)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;font-size:18px;font-weight:700;background:linear-gradient(135deg,#2b2b3a,#1a1a19);text-wrap:balance}
+.dur{position:absolute;right:8px;bottom:8px;padding:1px 5px;border-radius:4px;background:rgba(0,0,0,.8);font-size:12px;font-weight:500}
+.why{position:absolute;inset:0;padding:12px 14px;background:rgba(15,15,15,.93);opacity:0;transition:opacity .15s;overflow:hidden;font-size:13px;line-height:1.45;display:flex;flex-direction:column;gap:6px}
+.card:hover .why,.card:focus-visible .why{opacity:1}
+.why b{display:block;font-size:11px;color:var(--accent);letter-spacing:.2px;margin-bottom:1px}
+.why p{margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.meta{padding:10px 2px 0}
+.kind{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;background:var(--surface-2);color:var(--text-2);margin-bottom:6px}
+.title{font-size:15px;font-weight:500;line-height:1.4;margin:0 0 4px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.sub{color:var(--text-3);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scrollhint{text-align:center;color:var(--text-3);margin:44px 0 0}
+.scrollhint a{display:inline-block;padding:8px 16px;border-radius:18px}
+.scrollhint a:hover{background:var(--surface)}
+
+/* report */
+.report{margin-top:56px;padding-top:40px;border-top:1px solid var(--line)}
+.report h2{font-size:26px;margin:0 0 8px;text-wrap:balance}
+.report .lead{font-size:16px;color:var(--text-2);max-width:820px;margin:0 0 12px;text-wrap:pretty}
+.traits{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 28px;padding:0;list-style:none}
+.traits li{padding:4px 12px;border-radius:14px;background:var(--surface-2);color:var(--text-2)}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.tile{background:var(--surface);border-radius:12px;padding:16px 18px}
+.tile .v{font-size:32px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile .v small{font-size:15px;font-weight:500;color:var(--text-2);margin-left:2px}
+.tile .l{color:var(--text-2);margin-top:6px}
+.tile .d{color:var(--text-3);font-size:12px;margin-top:2px}
+.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media(max-width:980px){.panels{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.panel{background:var(--surface);border-radius:12px;padding:20px 22px;min-width:0}
+.panel.wide{grid-column:1/-1}
+.panel h3{font-size:16px;margin:0 0 2px}
+.panel .desc{color:var(--text-3);font-size:13px;margin:0 0 16px}
+.cloud{position:relative;height:340px;overflow:hidden}
+.cloud span{position:absolute;white-space:nowrap;font-weight:700;line-height:1;cursor:default}
+.legend{display:flex;gap:16px;color:var(--text-2);font-size:13px;margin-bottom:12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.bars{display:grid;grid-template-columns:auto 1fr;gap:9px 12px;align-items:center}
+.bars .name{color:var(--text-2);font-size:13px;white-space:nowrap;text-align:right}
+.bars .pair{display:flex;flex-direction:column;gap:2px;border-left:1px solid var(--line);padding:1px 0}
+.bars .bar{height:8px;border-radius:0 4px 4px 0;min-width:1px}
+.bars .row{display:contents}
+.blind{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+@media(max-width:540px){.blind{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cell{border-radius:8px;padding:10px 10px 12px;min-height:74px;display:flex;flex-direction:column;justify-content:space-between;border:1px solid transparent}
+.cell .n{font-size:13px;font-weight:500}
+.cell .p{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.cell.zero{background:transparent;border:1px dashed var(--text-3)}
+.cell.zero .p{font-size:12px;font-weight:500;color:var(--text-2)}
+.chlist{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.chlist li{display:grid;grid-template-columns:1fr auto;gap:2px 12px}
+.chlist .cn{font-weight:500}
+.chlist .cc{color:var(--text-3);font-variant-numeric:tabular-nums}
+.chlist .ct{grid-column:1/-1;color:var(--text-2);font-size:13px}
+.worlds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:860px){.worlds{grid-template-columns:1fr}}
+.world{border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.world b{display:block;font-size:15px;margin-bottom:4px}
+.world span{color:var(--text-2);font-size:13px}
+.closing{font-size:16px;color:var(--text-2);max-width:820px;margin:28px 0 0;text-wrap:pretty}
+details{margin-top:14px;color:var(--text-2);font-size:13px}
+details table{border-collapse:collapse;margin-top:8px;width:100%}
+details td,details th{padding:4px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+details td:first-child,details th:first-child{text-align:left}
+.footnote{color:var(--text-3);font-size:12px;margin-top:28px}
+.tip{position:fixed;z-index:50;pointer-events:none;padding:6px 10px;border-radius:6px;background:#000;border:1px solid var(--line);font-size:12px;white-space:nowrap;transform:translate(12px,12px)}
+
+/* settings */
+dialog{border:0;border-radius:16px;background:var(--surface);color:var(--text);padding:24px;width:min(520px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h2{margin:0 0 6px;font-size:20px}
+dialog p{color:var(--text-2);margin:0 0 16px;font-size:13px}
+dialog label{display:block;margin:12px 0 4px;color:var(--text-2);font-size:13px}
+dialog input,dialog select{width:100%;height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit}
+dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="./" aria-label="ebuTuoY 홈">
+    <svg viewBox="0 0 30 22" aria-hidden="true"><rect width="30" height="22" rx="6" fill="#9085e9"/><path d="M19 6v10l-9-5z" fill="#0f0f0f"/></svg>
+    ebuTuoY
+  </a>
+  <div class="searchbar">내 알고리즘의 반대편 — 내가 보지 못하는 유튜브</div>
+  <button class="hbtn hidden" id="btnNew">새로 분석</button>
+  <button class="hbtn" id="btnSettings">API 키 설정</button>
+</header>
+
+<main>
+  <!-- 1. 업로드 화면 -->
+  <section class="upload" id="viewUpload">
+    <h1>내 유튜브 홈 화면을 올리면<br>정반대의 유튜브를 보여드립니다</h1>
+    <p>PC 유튜브 홈을 새로고침하며 캡처한 화면을 10장 이상 올려주세요. 구독 목록 캡처를 함께 올려도 됩니다.<br>캡처는 분석을 위해 Gemini로만 전송되고 어디에도 저장되지 않습니다.</p>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="캡처 이미지 선택">
+      <strong>여기에 캡처를 끌어다 놓거나 눌러서 선택</strong>
+      <span>붙여넣기(Ctrl+V)도 됩니다 · PNG/JPG · 최대 16장</span>
+    </div>
+    <input type="file" id="file" accept="image/*" multiple class="hidden">
+    <div class="thumbs" id="thumbs"></div>
+    <div class="count" id="count"></div>
+    <div class="actions">
+      <button class="btn primary" id="btnRun" disabled>분석 시작</button>
+      <button class="btn" id="btnSample">샘플 결과 보기</button>
+    </div>
+    <ul class="steps hidden" id="steps">
+      <li data-s="read"><i></i>캡처에서 영상 제목·채널 읽고 성향 분석 (Gemini)</li>
+      <li data-s="chan"><i></i>자주 나온 채널 깊이 보기 (YouTube)</li>
+      <li data-s="plan"><i></i>채널 성향 분석과 반대 기준 만들기 (Gemini)</li>
+      <li data-s="feed"><i></i>반대 영상 모으기 (YouTube)</li>
+    </ul>
+    <div class="error hidden" id="error" role="alert"></div>
+  </section>
+
+  <!-- 2. 반대 피드 + 3. 리포트 -->
+  <section class="hidden" id="viewResult">
+    <div class="chips" id="chips"></div>
+    <div class="grid" id="grid"></div>
+    <p class="scrollhint"><a href="#report">↓ 아래로 내리면 내 알고리즘 리포트</a></p>
+
+    <div class="report" id="report">
+      <h2>당신의 알고리즘 리포트</h2>
+      <p class="lead" id="rSummary"></p>
+      <ul class="traits" id="rTraits"></ul>
+      <div class="tiles" id="rTiles"></div>
+      <div class="panels">
+        <div class="panel">
+          <h3>관심사 워드클라우드</h3>
+          <p class="desc">피드에 자주 등장한 주제일수록 크고 밝게 표시됩니다.</p>
+          <div class="cloud" id="rCloud"></div>
+        </div>
+        <div class="panel">
+          <h3>사각지대 지도</h3>
+          <p class="desc">유튜브 15개 카테고리 중 내 피드가 차지한 비중. 점선 칸은 한 번도 나오지 않은 곳입니다.</p>
+          <div class="blind" id="rBlind"></div>
+        </div>
+        <div class="panel wide" id="pCompare">
+          <h3>내 피드 vs 지금 인기 영상</h3>
+          <p class="desc" id="rCompareDesc"></p>
+          <div class="legend"><span><i style="background:var(--series-1)"></i>내 피드</span><span><i style="background:var(--series-2)"></i>인기 영상</span></div>
+          <div class="bars" id="rBars"></div>
+          <details><summary>표로 보기</summary><div id="rTable"></div></details>
+        </div>
+        <div class="panel wide">
+          <h3>내 피드를 채운 채널</h3>
+          <p class="desc">가장 자주 나온 채널과, 채널 소개·최근 영상으로 본 성향입니다.</p>
+          <ul class="chlist" id="rChannels"></ul>
+        </div>
+        <div class="panel wide">
+          <h3>당신이 모르는 세계</h3>
+          <p class="desc">내 알고리즘이 한 번도 데려가지 않은 곳들입니다.</p>
+          <div class="worlds" id="rWorlds"></div>
+        </div>
+      </div>
+      <p class="closing" id="rClosing"></p>
+      <p class="footnote">성향 분석은 영상 제목과 채널 정보를 바탕으로 AI가 추정한 것이며 틀릴 수 있습니다. 이 사이트는 YouTube와 관련이 없는 과제용 데모입니다.</p>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <h2>API 키 설정</h2>
+  <p>키는 이 브라우저에만 저장되고(localStorage) 구글 API 호출에만 쓰입니다. 코드나 GitHub에는 올라가지 않습니다.</p>
+  <label for="inGem">Gemini API 키</label>
+  <input id="inGem" type="password" autocomplete="off" placeholder="AI Studio에서 발급">
+  <label for="inYt">YouTube Data API 키</label>
+  <input id="inYt" type="password" autocomplete="off" placeholder="Google Cloud Console에서 발급">
+  <label for="inModel">Gemini 모델</label>
+  <select id="inModel">
+    <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (무료 한도 넉넉, 기본)</option>
+    <option value="gemini-3.8-flash">gemini-3.8-flash (더 정확, 무료 한도 적음)</option>
+    <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
+  </select>
+  <div class="row">
+    <button class="btn" id="dlgCancel">닫기</button>
+    <button class="btn primary" id="dlgSave">저장</button>
+  </div>
+</dialog>
+<div class="tip hidden" id="tip"></div>
+
+<script>
+'use strict';
+/* ───────── 설정값 (여기만 바꾸면 구성이 바뀝니다) ───────── */
+const CONFIG = {
+  SETS: 5,                 // 상단 숫자 칩 개수 (추천 묶음 수)
+  // 한 화면 12칸의 구성과 순서: same=같은 관심사 안의 다른 것, cat=처음 보는 카테고리,
+  // foreign=해외 인기, other=다른 관점/시청층, rookie=조회수 적은 새 영상
+  LAYOUT: ['same','cat','foreign','same','other','cat','same','rookie','cat','other','same','cat'],
+  TOP_CHANNELS: 6,         // 깊이 볼 채널 수 (채널당 검색 1회 사용)
+  MAX_IMAGES: 16,
+  FOREIGN: ['IN','BR','JP','US','MX','FR','DE','ID','TR','EG','VN','TH','GB','ES'],
+  ROOKIE_MAX_VIEWS: 2000,
+  CAT_SEARCH_FALLBACK: 2   // 인기 차트가 없는 카테고리를 검색으로 대체할 최대 횟수
+};
+const CATS = {1:'영화/애니',2:'자동차',10:'음악',15:'동물',17:'스포츠',19:'여행',20:'게임',22:'일상/브이로그',23:'코미디',24:'엔터테인먼트',25:'뉴스/정치',26:'노하우/스타일',27:'교육',28:'과학기술',29:'사회/비영리'};
+const COUNTRY = {KR:'한국',IN:'인도',BR:'브라질',JP:'일본',US:'미국',MX:'멕시코',FR:'프랑스',DE:'독일',ID:'인도네시아',TR:'튀르키예',EG:'이집트',VN:'베트남',TH:'태국',GB:'영국',ES:'스페인'};
+const CAT_Q = {19:'여행 브이로그',27:'교육 강의',29:'사회 다큐멘터리'}; // 인기 차트가 없는 카테고리의 검색어
+const KIND = {same:'같은 관심사, 다른 것',cat:'처음 보는 카테고리',foreign:'해외 인기',other:'다른 관점',rookie:'신인 영상'};
+
+/* ───────── 유틸 ───────── */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k){ try { return localStorage.getItem('ebutuoy.'+k) || ''; } catch { return ''; } },
+  set(k,v){ try { localStorage.setItem('ebutuoy.'+k, v); } catch {} },
+  del(k){ try { localStorage.removeItem('ebutuoy.'+k); } catch {} }
+};
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const norm = s => String(s||'').toLowerCase().replace(/\s+/g,'');
+const pct = x => Math.round(x*100);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function views(n){ n=+n||0; if(n>=1e8) return (n/1e8).toFixed(1).replace(/\.0$/,'')+'억회'; if(n>=1e4) return (n/1e4).toFixed(n>=1e5?0:1).replace(/\.0$/,'')+'만회'; if(n>=1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'')+'천회'; return n+'회'; }
+function ago(iso){ const d=(Date.now()-new Date(iso))/864e5; if(d<1) return Math.max(1,Math.round(d*24))+'시간 전'; if(d<30) return Math.round(d)+'일 전'; if(d<365) return Math.round(d/30)+'개월 전'; return Math.round(d/365)+'년 전'; }
+function dur(iso){ const m=/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso||''); if(!m) return ''; const h=+m[1]||0, mi=+m[2]||0, s=+m[3]||0; return (h? h+':'+String(mi).padStart(2,'0') : mi)+':'+String(s).padStart(2,'0'); }
+
+/* ───────── API ───────── */
+async function gemini(parts){
+  const key = store.get('gem'); if(!key) throw new Error('Gemini API 키가 없습니다. 오른쪽 위 "API 키 설정"에서 입력해 주세요.');
+  const models = [...new Set([store.get('model')||'gemini-3.5-flash-lite','gemini-3.5-flash-lite','gemini-3.8-flash','gemini-flash-lite-latest'])];
+  const body = JSON.stringify({contents:[{role:'user',parts}], generationConfig:{responseMimeType:'application/json',temperature:0.3}});
+  let last;
+  for (const m of models){
+    for (let attempt=0; attempt<3; attempt++){
+      let r, j = {};
+      try {
+        r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':key}, body});
+        j = await r.json().catch(()=>({}));
+      } catch(e){ last = new Error('Gemini에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.'); await sleep(1500); continue; }
+      if (r.ok){
+        const text = (j.candidates?.[0]?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('');
+        try { return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g,'')); }
+        catch { last = new Error('Gemini 응답을 해석하지 못했습니다. 다시 시도해 주세요.'); continue; }
+      }
+      last = new Error(`Gemini 오류 (${m}, ${r.status}): ${j.error?.message||'알 수 없는 오류'}`);
+      if (r.status===400 || r.status===401 || r.status===403) throw last;   // 키·요청 문제: 재시도 무의미
+      if (r.status===500 || r.status===503){ await sleep(2000*(attempt+1)); continue; }  // 일시적 과부하: 잠시 후 재시도
+      break;   // 429(한도)·404(모델 없음): 다음 모델로
+    }
+  }
+  throw last;
+}
+let ytUnits = {search:0, other:0};
+async function yt(path, params){
+  const key = store.get('yt'); if(!key) throw new Error('YouTube API 키가 없습니다.');
+  const r = await fetch(`https://www.googleapis.com/youtube/v3/${path}?`+new URLSearchParams({...params,key}));
+  ytUnits[path==='search'?'search':'other']++;
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(`YouTube 오류 (${path}, ${r.status}): ${j.error?.message||''}`);
+  return j;
+}
+const ytTry = (path, params) => yt(path, params).catch(e => { console.warn(e.message); return {items:[]}; });
+
+/* ───────── 1단계: 캡처 읽기 + 성향 분석 ───────── */
+const images = []; // {b64, url}
+function fileToJpeg(file){
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const s = Math.min(1, 1600/Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      const data = c.toDataURL('image/jpeg', 0.82);
+      res({b64: data.split(',')[1], url: data});
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('이미지를 읽지 못했습니다: '+file.name)); };
+    img.src = url;
+  });
+}
+async function readScreens(){
+  const prompt = `다음 이미지들은 한 사용자의 PC 유튜브 홈 화면(추천 피드) 캡처다. 구독 목록 캡처가 섞여 있을 수 있다.
+1) 추천 피드에 보이는 모든 영상의 제목과 채널명을 빠짐없이 읽어라. 같은 영상은 한 번만. 광고는 제외. 글자가 잘려 있으면 보이는 만큼만 적는다. 없는 영상을 지어내지 마라.
+2) 각 영상에 유튜브 카테고리 ID 하나를 붙여라. 가능한 ID: ${Object.entries(CATS).map(([k,v])=>k+'='+v).join(', ')}
+3) 각 영상의 제작 국가를 ISO 2자리 코드로 추정하라(한국어 영상이면 KR).
+4) 구독 목록 캡처가 있으면 채널명을 subscriptions에 적어라(없으면 빈 배열).
+5) 전체를 보고 이 사용자의 관심사를 분석하라.
+JSON만 출력:
+{"videos":[{"t":"제목","ch":"채널명","cat":20,"cc":"KR"}],
+ "subscriptions":["채널명"],
+ "keywords":[{"w":"관심사 키워드(명사, 채널명 제외)","n":1에서 10 사이 중요도}],
+ "summary":"이 사용자의 알고리즘이 어떤 모습인지 2~3문장. '당신의 피드는'으로 시작.",
+ "traits":["짧은 특징 태그 4~6개 (예: 게임 실황 위주, 국내 영상 편중)"],
+ "mainCountry":"가장 많은 제작 국가 코드",
+ "politics":{"detected":시사·정치 영상이 3개 이상이면 true,"note":"detected일 때만: 어떤 관점의 채널이 많은지 중립적으로 한 문장, '~로 추정'으로 끝낼 것"}}
+keywords는 30~40개.`;
+  const parts = [{text: prompt}, ...images.map(i => ({inline_data:{mime_type:'image/jpeg', data:i.b64}}))];
+  const r = await gemini(parts);
+  if(!Array.isArray(r.videos) || !r.videos.length) throw new Error('캡처에서 영상을 찾지 못했습니다. 유튜브 홈 화면 캡처가 맞는지 확인해 주세요.');
+  return r;
+}
+function summarize(raw){
+  const vids = raw.videos.filter(v => v && v.t);
+  const n = vids.length, catCount = {}, chCount = {}, ccCount = {};
+  for (const v of vids){
+    const c = CATS[v.cat] ? v.cat : 22; catCount[c] = (catCount[c]||0)+1;
+    if (v.ch) chCount[v.ch] = (chCount[v.ch]||0)+1;
+    const cc = (v.cc||'').toUpperCase(); if(cc) ccCount[cc] = (ccCount[cc]||0)+1;
+  }
+  const chans = Object.entries(chCount).sort((a,b)=>b[1]-a[1]);
+  const top3 = chans.slice(0,3).reduce((s,c)=>s+c[1],0)/n;
+  let H = 0; for (const c of Object.values(catCount)){ const p=c/n; H -= p*Math.log(p); }
+  const mainCountry = (raw.mainCountry||'').toUpperCase() || (Object.entries(ccCount).sort((a,b)=>b[1]-a[1])[0]||['KR'])[0];
+  return {
+    n, catCount, mainCountry, mainCountryShare: (ccCount[mainCountry]||0)/n,
+    diversity: Math.round(H/Math.log(Object.keys(CATS).length)*100), top3Share: top3,
+    topChannels: chans.slice(0, CONFIG.TOP_CHANNELS).map(([name,count])=>({name,count})),
+    allChannels: chans.map(c=>c[0]).concat(raw.subscriptions||[]),
+    subscriptions: raw.subscriptions||[],
+    keywords: (raw.keywords||[]).filter(k=>k&&k.w).slice(0,40),
+    summary: raw.summary||'', traits: raw.traits||[], politics: raw.politics||{detected:false},
+    titles: vids.map(v=>v.t).slice(0,120)
+  };
+}
+
+/* ───────── 2단계: 자주 나온 채널 깊이 보기 ───────── */
+async function deepChannels(A){
+  const found = [];
+  for (const ch of A.topChannels){
+    const s = await ytTry('search', {part:'snippet', type:'channel', q:ch.name, maxResults:1});
+    const id = s.items?.[0]?.id?.channelId; if (id) found.push({ch, id});
+  }
+  if (!found.length) return;
+  const info = await ytTry('channels', {part:'snippet,statistics,contentDetails', id:found.map(f=>f.id).join(',')});
+  const byId = Object.fromEntries((info.items||[]).map(i=>[i.id,i]));
+  await Promise.all(found.map(async f => {
+    const c = byId[f.id]; if(!c) return;
+    f.ch.desc = (c.snippet?.description||'').slice(0,300);
+    f.ch.subs = +c.statistics?.subscriberCount||0;
+    const up = c.contentDetails?.relatedPlaylists?.uploads;
+    if (up){ const p = await ytTry('playlistItems', {part:'snippet', playlistId:up, maxResults:8}); f.ch.recent = (p.items||[]).map(i=>i.snippet.title); }
+  }));
+}
+async function trendDist(region){
+  const t = await ytTry('videos', {part:'snippet', chart:'mostPopular', regionCode:region, maxResults:50});
+  if (!t.items?.length) return null;
+  const d = {}; for (const i of t.items){ const c=+i.snippet.categoryId; if(CATS[c]) d[c]=(d[c]||0)+1; }
+  return d;
+}
+
+/* ───────── 3단계: 채널 성향 + 반대 기준 ───────── */
+async function makePlan(A){
+  const catLine = Object.keys(CATS).map(id => `${CATS[id]} ${A.catCount[id]||0}개`).join(', ');
+  const prompt = `한 사용자의 유튜브 추천 피드 분석 결과다. 이 사용자의 알고리즘과 "반대되는" 영상을 찾기 위한 기준을 만들어라.
+
+[요약] ${A.summary}
+[영상 ${A.n}개의 카테고리 분포] ${catLine}
+[주 제작 국가] ${A.mainCountry}
+[관심 키워드] ${A.keywords.map(k=>k.w).join(', ')}
+[시사·정치] ${A.politics?.detected ? A.politics.note : '시사·정치 영상 거의 없음'}
+[자주 나온 채널]
+${A.topChannels.map(c=>`- ${c.name} (${c.count}회${c.subs?', 구독자 '+c.subs:''}) 소개: ${c.desc||'정보 없음'} / 최근 영상: ${(c.recent||[]).join(' | ')||'정보 없음'}`).join('\n')}
+[구독 채널] ${A.subscriptions.join(', ')||'정보 없음'}
+[피드 영상 제목 일부] ${A.titles.slice(0,60).join(' | ')}
+
+JSON만 출력:
+{"channels":[{"name":"위 채널명 그대로","tendency":"이 채널이 어떤 채널이고 어떤 성향·시청층인지 한 문장. 추정임을 드러낼 것"}],
+ "sameDifferent":[{"q":"유튜브 검색어","reason":"왜 이 사용자의 알고리즘과 반대인지 한 문장"}],
+ "otherPerspective":[{"q":"유튜브 검색어","reason":"한 문장"}],
+ "rookie":{"q":"유튜브 검색어","reason":"한 문장"},
+ "unknownWorlds":[{"title":"짧은 제목","desc":"이 사용자가 모르는 세계를 한두 문장으로 소개"}],
+ "closing":"이 사용자에게 건네는 마무리 두 문장. 왜 이런 영상들을 추천하는지."}
+
+규칙:
+- sameDifferent는 정확히 4개. 사용자가 많이 보는 카테고리 "안에서" 보지 않는 것을 고른다(예: 개 영상 → 고양이, 축구 → 배구, FPS 게임 → 농사 게임). 서로 다른 카테고리에서 고를 것.
+- otherPerspective는 정확히 2개. 시사·정치 영상이 있으면 그와 다른 관점의 시사 콘텐츠를, 없으면 이 사용자와 다른 성별·연령대 시청층이 주로 보는 주제를 고른다.
+- rookie는 이 사용자가 보지 않는 주제 중 개인이 막 올린 영상이 많을 법한 짧은 검색어 2단어(예: 첫 브이로그, 자취 요리).
+- 검색어는 사용자의 주 언어로 2~4단어, 실제로 유튜브에 치면 영상이 나올 법한 말.
+- unknownWorlds는 3개. 특정 집단을 비하하거나 단정하지 말 것.`;
+  const p = await gemini([{text: prompt}]);
+  for (const c of (p.channels||[])){ const t = A.topChannels.find(x => norm(x.name)===norm(c.name)); if (t) t.tendency = c.tendency; }
+  A.plan = {
+    sameDifferent: (p.sameDifferent||[]).filter(x=>x&&x.q).slice(0,4),
+    otherPerspective: (p.otherPerspective||[]).filter(x=>x&&x.q).slice(0,2),
+    rookie: p.rookie?.q ? p.rookie : {q:'첫 브이로그', reason:'알고리즘이 거의 보여주지 않는 갓 시작한 채널입니다.'},
+    unknownWorlds: (p.unknownWorlds||[]).slice(0,3), closing: p.closing||''
+  };
+}
+
+/* ───────── 4단계: 반대 피드 만들기 ───────── */
+function missingCats(A){
+  const ids = Object.keys(CATS).map(Number).sort((a,b)=>(A.catCount[a]||0)-(A.catCount[b]||0));
+  const zero = ids.filter(i=>!A.catCount[i]);
+  return shuffle(zero.length>=4 ? zero : ids.slice(0,4)).slice(0,6);
+}
+async function buildFeed(A){
+  const region = COUNTRY[A.mainCountry] ? A.mainCountry : 'KR';
+  const lang = region==='KR' ? 'ko' : undefined;
+  const mine = new Set(A.allChannels.map(norm));
+  const P = A.plan, pools = {same:[], other:[], cat:[], foreign:[], rookie:[]};
+  const sp = q => { const o = {part:'snippet', type:'video', q, maxResults:15, regionCode:region, safeSearch:'moderate'}; if(lang) o.relevanceLanguage = lang; return o; };
+  const ids = r => (r.items||[]).map(i=>i.id?.videoId||i.id).filter(x=>typeof x==='string');
+  const jobs = [];
+  P.sameDifferent.forEach(s => jobs.push(ytTry('search', sp(s.q)).then(r => pools.same.push({ids:ids(r), reason:s.reason, tag:s.q}))));
+  P.otherPerspective.forEach(s => jobs.push(ytTry('search', sp(s.q)).then(r => pools.other.push({ids:ids(r), reason:s.reason, tag:s.q}))));
+  jobs.push(ytTry('search', {...sp(P.rookie.q), order:'date', maxResults:50, publishedAfter:new Date(Date.now()-30*864e5).toISOString()})
+    .then(r => pools.rookie.push({ids:ids(r), reason:P.rookie.reason, tag:P.rookie.q})));
+  let fallback = 0;
+  for (const c of missingCats(A)){
+    const cnt = A.catCount[c]||0;
+    const reason = cnt ? `피드 ${A.n}개 중 '${CATS[c]}' 영상은 ${cnt}개뿐입니다. 다른 사람들은 지금 이걸 많이 봅니다.` : `피드 ${A.n}개 중 '${CATS[c]}' 영상은 하나도 없었습니다. 다른 사람들은 지금 이걸 많이 봅니다.`;
+    jobs.push(yt('videos', {part:'id', chart:'mostPopular', regionCode:region, videoCategoryId:c, maxResults:10})
+      .catch(() => (fallback++ < CONFIG.CAT_SEARCH_FALLBACK)
+        ? ytTry('search', {part:'snippet', type:'video', videoCategoryId:c, regionCode:region, maxResults:10, publishedAfter:new Date(Date.now()-90*864e5).toISOString(), ...(lang?{relevanceLanguage:lang, q:CAT_Q[c]||CATS[c]}:{order:'viewCount'})})
+        : {items:[]})
+      .then(r => { const l = ids(r); if (l.length) pools.cat.push({ids:l, reason, tag:CATS[c]}); }));
+  }
+  for (const rc of shuffle(CONFIG.FOREIGN.filter(r=>r!==region)).slice(0, CONFIG.SETS)){
+    jobs.push(ytTry('videos', {part:'id', chart:'mostPopular', regionCode:rc, maxResults:6}).then(r => {
+      const l = ids(r); if (l.length) pools.foreign.push({ids:l, tag:COUNTRY[rc],
+        reason:`피드의 ${pct(A.mainCountryShare)}%가 ${COUNTRY[region]||region} 영상입니다. 이건 지금 ${COUNTRY[rc]}에서 가장 많이 보는 영상이에요.`});
+    }));
+  }
+  await Promise.all(jobs);
+
+  // 영상 상세 정보 한꺼번에 받기
+  const all = [...new Set(Object.values(pools).flat().flatMap(p=>p.ids))], V = {};
+  for (let i=0;i<all.length;i+=50){
+    const r = await ytTry('videos', {part:'snippet,statistics,contentDetails', id:all.slice(i,i+50).join(',')});
+    for (const it of (r.items||[])) V[it.id] = {
+      id:it.id, title:it.snippet.title, channel:it.snippet.channelTitle, desc:(it.snippet.description||'').replace(/\s+/g,' ').slice(0,160),
+      thumb:it.snippet.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${it.id}/mqdefault.jpg`,
+      views:+it.statistics?.viewCount||0, at:it.snippet.publishedAt, dur:dur(it.contentDetails?.duration), cat:+it.snippet.categoryId
+    };
+  }
+  const used = new Set();
+  for (const k in pools) for (const p of pools[k]){
+    p.items = p.ids.map(id=>V[id]).filter(v => v && !mine.has(norm(v.channel)));
+    if (k==='rookie') p.items = p.items.filter(v=>v.views<=CONFIG.ROOKIE_MAX_VIEWS).sort((a,b)=>a.views-b.views);
+  }
+  const lowIds = new Set(), low = [];
+  for (const k of ['same','other']) for (const p of pools[k]) for (const v of p.items) if (v.views<=CONFIG.ROOKIE_MAX_VIEWS && !lowIds.has(v.id)){ lowIds.add(v.id); low.push(v); }
+  if (low.length){
+    for (const k of ['same','other']) for (const p of pools[k]) p.items = p.items.filter(v=>!lowIds.has(v.id));
+    pools.rookie.push({items:low.sort((a,b)=>a.views-b.views), tag:'신인', reason:'알고리즘이 거의 보여주지 않는, 아직 본 사람이 거의 없는 영상입니다.'});
+  }
+  // 묶음(칩) 구성
+  const take = (kind, k, i) => {
+    const list = pools[kind]; if(!list.length) return null;
+    const turn = k*CONFIG.LAYOUT.filter(x=>x===kind).length + i;
+    for (let t=0;t<list.length;t++){
+      const p = list[(turn+t)%list.length];
+      const v = p.items.find(x=>!used.has(x.id));
+      if (v){ used.add(v.id);
+        const reason = kind==='rookie' ? `조회수 ${views(v.views)}. ${p.reason}` : p.reason;
+        return {...v, kind, tag:p.tag, reason}; }
+    }
+    return null;
+  };
+  const sets = [];
+  for (let k=0;k<CONFIG.SETS;k++){
+    const seen = {}, set = [];
+    for (const kind of CONFIG.LAYOUT){ const i = seen[kind] = (seen[kind]??-1)+1; const v = take(kind,k,i); if (v) set.push(v); }
+    if (set.length) sets.push(set);
+  }
+  if (!sets.length) throw new Error('반대 영상을 가져오지 못했습니다. YouTube API 한도를 확인해 주세요.');
+  return sets;
+}
+// YouTube 키가 없을 때: 실제 영상 대신 유튜브 검색 결과로 연결되는 카드
+function placeholderFeed(A){
+  const P = A.plan, mk = (kind, q, reason, tag) => ({kind, tag, reason, ph:true, title:`'${q}' 영상 찾아보기`, channel:'YouTube 검색으로 이동', q});
+  const cats = missingCats(A), f = shuffle(CONFIG.FOREIGN.filter(r=>r!==A.mainCountry));
+  const sets = [];
+  for (let k=0;k<CONFIG.SETS;k++){
+    const seen = {}, set = [];
+    for (const kind of CONFIG.LAYOUT){
+      const i = seen[kind] = (seen[kind]??-1)+1;
+      if (kind==='same'){ const s=P.sameDifferent[(k+i)%P.sameDifferent.length]; if(s) set.push(mk(kind,s.q,s.reason,s.q)); }
+      else if (kind==='other'){ const s=P.otherPerspective[(k+i)%P.otherPerspective.length]; if(s) set.push(mk(kind,s.q,s.reason,s.q)); }
+      else if (kind==='rookie') set.push(mk(kind,P.rookie.q,P.rookie.reason,P.rookie.q));
+      else if (kind==='cat'){ const c=cats[(k+i)%cats.length]; set.push(mk(kind,CATS[c],`피드 ${A.n}개 중 '${CATS[c]}' 영상은 ${A.catCount[c]||0}개였습니다.`,CATS[c])); }
+      else { const rc=f[k%f.length]; set.push(mk(kind,COUNTRY[rc]+' 인기 영상',`피드의 ${pct(A.mainCountryShare)}%가 ${COUNTRY[A.mainCountry]||A.mainCountry} 영상입니다.`,COUNTRY[rc])); }
+    }
+    sets.push(set);
+  }
+  return sets;
+}
+
+/* ───────── 화면 그리기 ───────── */
+let STATE = null, current = 0;
+function renderFeed(){
+  const sets = STATE.sets;
+  $('chips').innerHTML = sets.map((_,i)=>`<button class="chip" aria-pressed="${i===current}" data-i="${i}">${i+1}</button>`).join('')
+    + `<span class="note">${STATE.A.sample?'샘플 데이터 · ':''}숫자를 누르면 다른 추천 묶음으로 바뀝니다${STATE.live?'':' · YouTube 키를 넣으면 실제 영상이 나옵니다'}</span>`;
+  $('grid').innerHTML = sets[current].map(v => {
+    const href = v.ph ? 'https://www.youtube.com/results?search_query='+encodeURIComponent(v.q) : 'https://www.youtube.com/watch?v='+encodeURIComponent(v.id);
+    const what = v.ph ? '눌러서 유튜브에서 직접 찾아보세요.' : (v.desc || `${v.channel} 채널의 ${CATS[v.cat]||''} 영상입니다.`);
+    return `<a class="card" href="${href}" target="_blank" rel="noopener">
+      <div class="thumb">${v.ph ? `<div class="ph">${esc(v.tag)}</div>` : `<img loading="lazy" src="${esc(v.thumb)}" alt="">`}
+        ${v.dur?`<span class="dur">${esc(v.dur)}</span>`:''}
+        <div class="why"><div><b>왜 내 알고리즘과 반대일까</b><p>${esc(v.reason)}</p></div><div><b>어떤 영상?</b><p>${esc(what)}</p></div></div>
+      </div>
+      <div class="meta"><span class="kind">${esc(KIND[v.kind])}${v.kind==='foreign'||v.kind==='cat'?' · '+esc(v.tag):''}</span>
+        <h3 class="title">${esc(v.title)}</h3>
+        <div class="sub">${esc(v.channel)}${v.ph?'':` · 조회수 ${views(v.views)} · ${ago(v.at)}`}</div></div></a>`;
+  }).join('');
+}
+function renderReport(){
+  const A = STATE.A, ids = Object.keys(CATS).map(Number);
+  const share = id => (A.catCount[id]||0)/A.n;
+  $('rSummary').textContent = A.summary;
+  $('rTraits').innerHTML = A.traits.map(t=>`<li>${esc(t)}</li>`).join('');
+  const zero = ids.filter(i=>!A.catCount[i]).length;
+  $('rTiles').innerHTML = [
+    [A.n,'개','분석한 영상','캡처에서 읽어낸 추천 영상 수'],
+    [A.diversity,'/100','다양성 점수','카테고리가 고르게 섞일수록 높음'],
+    [pct(A.top3Share),'%','상위 3개 채널 비중','피드에서 세 채널이 차지한 몫'],
+    [zero,'/15','사각지대','한 번도 안 나온 카테고리 수']
+  ].map(t=>`<div class="tile"><div class="v">${t[0]}<small>${t[1]}</small></div><div class="l">${t[2]}</div><div class="d">${t[3]}</div></div>`).join('');
+
+  // 사각지대 지도 (한 가지 색, 비중이 클수록 밝게)
+  const mx = Math.max(...ids.map(share), 0.01);
+  $('rBlind').innerHTML = ids.slice().sort((a,b)=>share(b)-share(a)).map(id => {
+    const s = share(id); if(!s) return `<div class="cell zero" data-tip="${esc(CATS[id])}: 피드에 0개"><span class="n">${esc(CATS[id])}</span><span class="p">사각지대</span></div>`;
+    const step = Math.min(4, 1+Math.floor(s/mx*3.999));
+    return `<div class="cell" style="background:var(--seq-${step});color:${step>=4?'#0f0f0f':'var(--text)'}" data-tip="${esc(CATS[id])}: ${A.catCount[id]}개 (${pct(s)}%)"><span class="n">${esc(CATS[id])}</span><span class="p">${pct(s)}%</span></div>`;
+  }).join('');
+
+  // 내 피드 vs 인기 영상
+  if (A.trend){
+    const tn = Object.values(A.trend).reduce((a,b)=>a+b,0)||1, ts = id => (A.trend[id]||0)/tn;
+    const order = ids.slice().sort((a,b)=>share(b)-share(a)||ts(b)-ts(a));
+    const m = Math.max(...ids.map(share), ...ids.map(ts), 0.01);
+    $('rCompareDesc').textContent = `${COUNTRY[A.mainCountry]||A.mainCountry} 인기 영상 ${tn}개의 카테고리 분포와 비교했습니다. 주황 막대만 길게 나온 곳이 남들은 보는데 나는 안 보는 영역입니다.`;
+    $('rBars').innerHTML = order.map(id => `<div class="row"><span class="name">${esc(CATS[id])}</span><div class="pair">
+      <div class="bar" style="width:${share(id)/m*100}%;background:var(--series-1)" data-tip="내 피드 · ${esc(CATS[id])}: ${pct(share(id))}%"></div>
+      <div class="bar" style="width:${ts(id)/m*100}%;background:var(--series-2)" data-tip="인기 영상 · ${esc(CATS[id])}: ${pct(ts(id))}%"></div></div></div>`).join('');
+    $('rTable').innerHTML = `<table><tr><th>카테고리</th><th>내 피드</th><th>인기 영상</th></tr>${order.map(id=>`<tr><td>${esc(CATS[id])}</td><td>${pct(share(id))}%</td><td>${pct(ts(id))}%</td></tr>`).join('')}</table>`;
+    $('pCompare').classList.remove('hidden');
+  } else $('pCompare').classList.add('hidden');
+
+  $('rChannels').innerHTML = A.topChannels.map(c=>`<li><span class="cn">${esc(c.name)}</span><span class="cc">${c.count}회 등장</span>${c.tendency?`<span class="ct">${esc(c.tendency)}</span>`:''}</li>`).join('');
+  $('rWorlds').innerHTML = (A.plan.unknownWorlds||[]).map(w=>`<div class="world"><b>${esc(w.title)}</b><span>${esc(w.desc)}</span></div>`).join('');
+  $('rClosing').textContent = (A.politics?.detected && A.politics.note ? A.politics.note+' ' : '') + (A.plan.closing||'');
+  requestAnimationFrame(drawCloud);
+}
+function drawCloud(){
+  const box = $('rCloud'), W = box.clientWidth, H = box.clientHeight; if(!W) return;
+  box.innerHTML = '';
+  const words = STATE.A.keywords.slice().sort((a,b)=>b.n-a.n), placed = [];
+  const scale = Math.min(1, W/560);
+  for (const k of words){
+    const n = Math.max(1, Math.min(10, +k.n||1)), el = document.createElement('span');
+    el.textContent = k.w; el.style.fontSize = Math.round((13+n*3.6)*scale)+'px';
+    el.style.color = n>=8 ? 'var(--text)' : n>=5 ? 'var(--text-2)' : 'var(--text-3)';
+    el.dataset.tip = `${k.w} · 중요도 ${n}/10`;
+    box.appendChild(el);
+    const w = el.offsetWidth+10, h = el.offsetHeight+6; let ok = false;
+    for (let t=0;t<900;t++){
+      const r = 3.2*Math.sqrt(t)*2.2, a = t*0.5;
+      const x = W/2 + r*Math.cos(a)*1.5 - w/2, y = H/2 + r*Math.sin(a)*0.8 - h/2;
+      if (x<0||y<0||x+w>W||y+h>H) continue;
+      if (placed.every(p => x+w<p.x || p.x+p.w<x || y+h<p.y || p.y+p.h<y)){ placed.push({x,y,w,h}); el.style.left=(x+5)+'px'; el.style.top=(y+3)+'px'; ok = true; break; }
+    }
+    if (!ok) el.remove();
+  }
+}
+function show(state){
+  STATE = state; current = 0;
+  $('viewUpload').classList.add('hidden'); $('viewResult').classList.remove('hidden'); $('btnNew').classList.remove('hidden');
+  renderFeed(); renderReport(); window.scrollTo(0,0);
+}
+
+/* ───────── 전체 흐름 ───────── */
+function step(name, status){ const li = document.querySelector(`#steps li[data-s="${name}"]`); if(li) li.className = status; }
+async function run(){
+  const err = $('error'); err.classList.add('hidden');
+  if (!store.get('gem')){ openSettings(); return; }
+  $('btnRun').disabled = true; $('btnSample').disabled = true;
+  $('steps').classList.remove('hidden'); document.querySelectorAll('#steps li').forEach(l=>l.className='');
+  ytUnits = {search:0, other:0};
+  try {
+    step('read','run'); const A = summarize(await readScreens()); step('read','done');
+    const live = !!store.get('yt');
+    step('chan','run'); if (live){ await deepChannels(A); A.trend = await trendDist(COUNTRY[A.mainCountry]?A.mainCountry:'KR'); } step('chan','done');
+    step('plan','run'); await makePlan(A); step('plan','done');
+    step('feed','run'); const sets = live ? await buildFeed(A) : placeholderFeed(A); step('feed','done');
+    delete A.titles;
+    const state = {A, sets, live, at:Date.now()};
+    store.set('result', JSON.stringify(state));
+    console.info('YouTube 호출 수', ytUnits);
+    show(state);
+  } catch(e){
+    console.error(e); err.textContent = e.message || String(e); err.classList.remove('hidden');
+    document.querySelectorAll('#steps li.run').forEach(l=>l.className='');
+  } finally { $('btnRun').disabled = !images.length; $('btnSample').disabled = false; }
+}
+const SAMPLE = {sample:true, n:96, mainCountry:'KR', mainCountryShare:0.94, diversity:41, top3Share:0.38,
+  catCount:{20:41,17:22,28:14,24:9,23:6,10:4},
+  topChannels:[
+    {name:'(샘플) 게임 실황 채널 A',count:15,tendency:'FPS·배틀로얄 실황 위주로, 10~30대 남성 시청층이 두터운 채널로 추정됩니다.'},
+    {name:'(샘플) 축구 하이라이트 B',count:12,tendency:'해외 축구 경기 요약과 이적 소식을 다루는 채널로 추정됩니다.'},
+    {name:'(샘플) IT 리뷰 C',count:9,tendency:'스마트폰·PC 부품 신제품 리뷰 중심의 채널로 추정됩니다.'},
+    {name:'(샘플) 게임 공략 D',count:6,tendency:'신작 게임 공략과 패치 분석을 올리는 채널로 추정됩니다.'}],
+  keywords:[['게임 실황',10],['축구',9],['FPS',9],['프리미어리그',8],['스마트폰 리뷰',8],['배틀로얄',7],['이적 시장',7],['그래픽카드',7],['공략',6],['하이라이트',6],['e스포츠',6],['신작 게임',6],['조립 PC',5],['랭크',5],['패치 노트',5],['손흥민',5],['언박싱',4],['벤치마크',4],['챔피언스리그',4],['스트리머',4],['키보드',3],['모니터',3],['밈',3],['예능 클립',3],['토크쇼',2],['힙합',2],['콘솔',2],['국가대표',2],['노트북',2],['편집 영상',2]].map(([w,n])=>({w,n})),
+  summary:'당신의 피드는 게임 실황과 해외 축구, IT 기기 리뷰 세 축으로 거의 채워져 있습니다. 영상의 94%가 한국 영상이고, 세 개 채널이 전체의 38%를 차지합니다.',
+  traits:['게임 실황 위주','해외 축구','IT 기기 리뷰','국내 영상 편중','소수 채널 집중'],
+  politics:{detected:false},
+  trend:{10:13,24:11,20:6,17:5,22:4,23:3,25:3,1:2,26:2,28:1},
+  plan:{
+    sameDifferent:[{q:'농사 게임 힐링 플레이',reason:'게임은 많이 보지만 경쟁 없는 느린 게임은 한 번도 나오지 않았습니다.'},{q:'여자 배구 하이라이트',reason:'스포츠는 축구뿐이었습니다. 같은 스포츠 안의 다른 종목입니다.'},{q:'필름 카메라 리뷰',reason:'최신 기기 리뷰만 보는 피드에 없는 오래된 기계 이야기입니다.'},{q:'보드게임 플레이',reason:'화면 속 게임 대신 테이블 위에서 하는 게임입니다.'}],
+    otherPerspective:[{q:'뜨개질 브이로그',reason:'이 피드와 시청층이 가장 겹치지 않는 취미 영상입니다.'},{q:'시니어 일상 브이로그',reason:'피드에 한 번도 등장하지 않은 세대의 일상입니다.'}],
+    rookie:{q:'첫 브이로그',reason:'알고리즘이 거의 보여주지 않는, 이제 막 시작한 채널입니다.'},
+    unknownWorlds:[{title:'느린 영상의 세계',desc:'자막도 편집도 거의 없이 요리하고 걷고 정리하는 영상을 수백만 명이 봅니다.'},{title:'동물과 사는 사람들',desc:'피드에 동물 영상은 0개였습니다. 유튜브에서 가장 큰 장르 중 하나입니다.'},{title:'다른 나라의 오늘',desc:'같은 시각 인도와 브라질의 인기 영상은 전혀 다른 음악과 드라마로 채워져 있습니다.'}],
+    closing:'알고리즘은 당신이 좋아할 것만 골라 주기 때문에, 좋아할지 모르는 것은 영영 만날 수 없습니다. 위 영상들은 취향을 바꾸라는 것이 아니라 한 번쯤 창밖을 보라는 제안입니다.'}
+};
+async function runSample(){
+  const A = JSON.parse(JSON.stringify(SAMPLE)); A.allChannels = []; let sets, live = false;
+  if (store.get('yt')){ try { $('btnSample').disabled = true; $('btnSample').textContent = '불러오는 중…'; sets = await buildFeed(A); live = true; } catch(e){ console.warn(e); } finally { $('btnSample').disabled = false; $('btnSample').textContent = '샘플 결과 보기'; } }
+  show({A, sets: sets || placeholderFeed(A), live});
+}
+
+/* ───────── 이벤트 ───────── */
+function refreshThumbs(){
+  $('thumbs').innerHTML = images.map((im,i)=>`<div><img src="${im.url}" alt="캡처 ${i+1}"><button data-i="${i}" aria-label="캡처 ${i+1} 삭제">×</button></div>`).join('');
+  $('count').textContent = images.length ? `${images.length}장 선택됨` + (images.length<10 ? ' · 10장 이상이면 분석이 더 정확합니다' : '') : '';
+  $('btnRun').disabled = !images.length;
+}
+async function addFiles(files){
+  for (const f of files){ if (!f.type.startsWith('image/') || images.length>=CONFIG.MAX_IMAGES) continue; try { images.push(await fileToJpeg(f)); } catch(e){ console.warn(e); } }
+  refreshThumbs();
+}
+const drop = $('drop');
+drop.onclick = () => $('file').click();
+drop.onkeydown = e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); $('file').click(); } };
+$('file').onchange = e => { addFiles([...e.target.files]); e.target.value=''; };
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); addFiles([...e.dataTransfer.files]); };
+document.addEventListener('paste', e => { const fs=[...(e.clipboardData?.files||[])]; if (fs.length && !$('viewUpload').classList.contains('hidden')) addFiles(fs); });
+$('thumbs').onclick = e => { const i = e.target.dataset?.i; if (i!==undefined){ images.splice(+i,1); refreshThumbs(); } };
+$('btnRun').onclick = run;
+$('btnSample').onclick = runSample;
+$('chips').onclick = e => { const i = e.target.dataset?.i; if (i!==undefined){ current = +i; renderFeed(); } };
+$('btnNew').onclick = () => { store.del('result'); $('viewResult').classList.add('hidden'); $('viewUpload').classList.remove('hidden'); $('btnNew').classList.add('hidden'); $('steps').classList.add('hidden'); window.scrollTo(0,0); };
+function openSettings(){ $('inGem').value = store.get('gem'); $('inYt').value = store.get('yt'); $('inModel').value = store.get('model')||'gemini-3.5-flash-lite'; $('dlg').showModal(); }
+$('btnSettings').onclick = openSettings;
+$('dlgCancel').onclick = () => $('dlg').close();
+$('dlgSave').onclick = () => { store.set('gem',$('inGem').value.trim()); store.set('yt',$('inYt').value.trim()); store.set('model',$('inModel').value); $('dlg').close(); };
+const tip = $('tip');
+document.addEventListener('mousemove', e => { const t = e.target.closest?.('[data-tip]'); if (t){ tip.textContent = t.dataset.tip; tip.style.left = Math.min(e.clientX, innerWidth-tip.offsetWidth-24)+'px'; tip.style.top = e.clientY+'px'; tip.classList.remove('hidden'); } else tip.classList.add('hidden'); });
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (STATE) drawCloud(); }, 200); });
+
+// 이전 분석 결과가 있으면 바로 보여주기 (API 한도 절약)
+try { const saved = JSON.parse(store.get('result')||'null'); if (saved?.A && saved?.sets?.length) show(saved); } catch {}
+</script>
+</body>
+</html>
